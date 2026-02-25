@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PICASH — Battle Arena</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --blue-1: #00d4ff;
+    --blue-2: #0099ff;
+    --blue-3: #0066ff;
+    --blue-4: #0033cc;
+    --blue-glow: rgba(0, 150, 255, 0.6);
+    --glass-bg: rgba(0, 30, 80, 0.25);
+    --glass-border: rgba(0, 180, 255, 0.3);
+    --glass-bg-dark: rgba(0, 15, 50, 0.5);
+    --text-primary: #e0f4ff;
+    --text-secondary: #80c8ff;
+    --danger: #ff4060;
+    --success: #00ff88;
+    --heal: #00ffaa;
+    --warning: #ffaa00;
+  }
+
+  body {
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    background: #000a1a;
+    color: var(--text-primary);
+    overflow-x: hidden;
+  }
+
+  /* ── Animated background ── */
+  .bg-container {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .bg-container::before {
+    content: '';
+    position: absolute;
+    inset: -50%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(0,100,255,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 80%, rgba(0,200,255,0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(0,50,150,0.08) 0%, transparent 70%);
+    animation: bgPulse 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes bgPulse {
+    0% { transform: scale(1) rotate(0deg); }
+    100% { transform: scale(1.1) rotate(3deg); }
+  }
+
+  .particle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: var(--blue-1);
+    border-radius: 50%;
+    opacity: 0;
+    animation: particleFloat linear infinite;
+    box-shadow: 0 0 6px var(--blue-1), 0 0 12px var(--blue-2);
+  }
+
+  @keyframes particleFloat {
+    0% { opacity: 0; transform: translateY(100vh) scale(0); }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+  }
+
+  /* ── Grid lines background ── */
+  .grid-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,100,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,100,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridMove 20s linear infinite;
+  }
+
+  @keyframes gridMove {
+    0% { transform: perspective(500px) rotateX(0deg); }
+    100% { transform: perspective(500px) rotateX(0deg) translateY(60px); }
+  }
+
+  /* ── Main wrapper ── */
+  .app-wrapper {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  /* ── Glass card ── */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 700px;
+    width: 100%;
+    box-shadow:
+      0 8px 32px rgba(0, 100, 255, 0.15),
+      inset 0 1px 0 rgba(255,255,255,0.05),
+      0 0 80px rgba(0, 100, 255, 0.05);
+    animation: cardAppear 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -50%;
+    width: 200%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--blue-1), transparent);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { transform: translateX(-30%); opacity: 0.5; }
+    50% { transform: translateX(30%); opacity: 1; }
+  }
+
+  @keyframes cardAppear {
+    from {
+      opacity: 0;
+      transform: translateY(40px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* ── Title ── */
+  .title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-weight: 900;
+    text-align: center;
+    background: linear-gradient(135deg, var(--blue-1), var(--blue-3), var(--blue-1));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: titleGlow 3s ease-in-out infinite;
+    margin-bottom: 8px;
+    letter-spacing: 4px;
+  }
+
+  @keyframes titleGlow {
+    0%, 100% { background-position: 0% center; filter: drop-shadow(0 0 10px rgba(0,150,255,0.4)); }
+    50% { background-position: 200% center; filter: drop-shadow(0 0 20px rgba(0,150,255,0.8)); }
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    margin-bottom: 30px;
+    font-weight: 300;
+  }
+
+  /* ── Form elements ── */
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 600;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 14px 20px;
+    background: rgba(0, 40, 100, 0.3);
+    border: 1px solid rgba(0, 150, 255, 0.2);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.3s ease;
+  }
+
+  .form-input:focus {
+    border-color: var(--blue-1);
+    box-shadow: 0 0 20px rgba(0, 150, 255, 0.2), inset 0 0 20px rgba(0, 150, 255, 0.05);
+    background: rgba(0, 40, 100, 0.5);
+  }
+
+  .form-input::placeholder {
+    color: rgba(128, 200, 255, 0.3);
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 32px;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .btn:hover::after {
+    opacity: 1;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, rgba(0,100,255,0.4), rgba(0,60,200,0.3));
+    color: var(--blue-1);
+    border-color: rgba(0, 180, 255, 0.4);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 150, 255, 0.3), 0 0 40px rgba(0, 150, 255, 0.1);
+    border-color: var(--blue-1);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-attack {
+    background: linear-gradient(135deg, rgba(255,60,80,0.3), rgba(200,30,60,0.2));
+    color: var(--danger);
+    border-color: rgba(255, 60, 80, 0.3);
+    flex: 1;
+  }
+
+  .btn-attack:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(255, 60, 80, 0.25);
+    border-color: var(--danger);
+  }
+
+  .btn-heal {
+    background: linear-gradient(135deg, rgba(0,255,136,0.2), rgba(0,200,100,0.15));
+    color: var(--heal);
+    border-color: rgba(0, 255, 136, 0.3);
+    flex: 1;
+  }
+
+  .btn-heal:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 255, 136, 0.2);
+    border-color: var(--heal);
+  }
+
+  .btn-opponent {
+    width: 100%;
+    padding: 18px 24px;
+    margin-bottom: 12px;
+    text-align: left;
+    background: var(--glass-bg);
+    color: var(--text-primary);
+    border-color: var(--glass-border);
+    justify-content: flex-start;
+  }
+
+  .btn-opponent:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 8px 30px rgba(0, 150, 255, 0.2);
+    border-color: var(--blue-1);
+    background: rgba(0, 60, 150, 0.3);
+  }
+
+  .btn-opponent.locked {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-opponent.locked:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--glass-border);
+    background: var(--glass-bg);
+  }
+
+  .btn-full {
+    width: 100%;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  /* ── Battle UI ── */
+  .battle-arena {
+    animation: cardAppear 0.5s ease;
+  }
+
+  .opponent-intro {
+    text-align: center;
+    margin-bottom: 24px;
+    animation: fadeInUp 0.5s ease;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .opponent-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.2rem, 4vw, 1.8rem);
+    font-weight: 700;
+    color: var(--danger);
+    text-shadow: 0 0 20px rgba(255, 60, 80, 0.4);
+    margin-bottom: 4px;
+  }
+
+  .opponent-title {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+  }
+
+  .dialogue-box {
+    background: rgba(0, 20, 60, 0.4);
+    border: 1px solid rgba(0, 150, 255, 0.15);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    position: relative;
+  }
+
+  .dialogue-box::before {
+    content: '💬';
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    font-size: 1.2rem;
+  }
+
+  .dialogue-box p {
+    margin-bottom: 4px;
+  }
+
+  .dialogue-box p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ── HP Bars ── */
+  .hp-section {
+    margin-bottom: 20px;
+  }
+
+  .hp-bar-container {
+    background: rgba(0, 15, 40, 0.6);
+    border: 1px solid rgba(0, 150, 255, 0.15);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .hp-bar-container.player-bar {
+    border-color: rgba(0, 200, 255, 0.25);
+  }
+
+  .hp-bar-container.enemy-bar {
+    border-color: rgba(255, 60, 80, 0.2);
+  }
+
+  .hp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .hp-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .hp-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .hp-track {
+    width: 100%;
+    height: 10px;
+    background: rgba(0, 10, 30, 0.8);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .hp-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+
+  .hp-fill.player-fill {
+    background: linear-gradient(90deg, var(--blue-3), var(--blue-1));
+    box-shadow: 0 0 10px rgba(0, 150, 255, 0.5);
+  }
+
+  .hp-fill.enemy-fill {
+    background: linear-gradient(90deg, #cc2040, #ff4060);
+    box-shadow: 0 0 10px rgba(255, 60, 80, 0.5);
+  }
+
+  .hp-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(rgba(255,255,255,0.2), transparent);
+    border-radius: 10px 10px 0 0;
+  }
+
+  /* ── Battle Log ── */
+  .battle-log {
+    background: rgba(0, 10, 30, 0.5);
+    border: 1px solid rgba(0, 150, 255, 0.1);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    max-height: 160px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+
+  .battle-log::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .battle-log::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .battle-log::-webkit-scrollbar-thumb {
+    background: rgba(0, 150, 255, 0.3);
+    border-radius: 4px;
+  }
+
+  .log-entry {
+    padding: 4px 0;
+    font-size: 0.9rem;
+    animation: logFade 0.3s ease;
+    border-bottom: 1px solid rgba(0, 150, 255, 0.05);
+  }
+
+  .log-entry:last-child {
+    border-bottom: none;
+  }
+
+  @keyframes logFade {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .log-attack { color: var(--danger); }
+  .log-heal { color: var(--heal); }
+  .log-miss { color: var(--text-secondary); opacity: 0.6; }
+  .log-hit { color: var(--warning); }
+  .log-victory { color: var(--success); font-weight: 700; }
+  .log-defeat { color: var(--danger); font-weight: 700; }
+
+  /* ── Opponent select ── */
+  .opponent-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .opponent-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: rgba(0, 50, 150, 0.3);
+    border: 1px solid rgba(0, 150, 255, 0.2);
+    flex-shrink: 0;
+  }
+
+  .opponent-details {
+    flex: 1;
+    text-align: left;
+  }
+
+  .opponent-details .name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .opponent-details .desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+  }
+
+  .opponent-stats {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .opponent-stats .hp {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    color: var(--blue-1);
+  }
+
+  .opponent-stats .diff {
+    font-size: 0.7rem;
+    color: var(--warning);
+    text-transform: uppercase;
+  }
+
+  .lock-icon {
+    font-size: 1.2rem;
+    opacity: 0.5;
+  }
+
+  /* ── Items / Inventory ── */
+  .inventory-bar {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .inv-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(0, 30, 80, 0.3);
+    border: 1px solid rgba(0, 150, 255, 0.15);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+  }
+
+  .inv-item.obtained {
+    border-color: var(--success);
+    color: var(--success);
+    background: rgba(0, 255, 136, 0.08);
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.1);
+  }
+
+  .inv-item.missing {
+    opacity: 0.3;
+  }
+
+  /* ── Result screen ── */
+  .result-screen {
+    text-align: center;
+    animation: fadeInUp 0.6s ease;
+  }
+
+  .result-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    animation: resultBounce 0.6s ease;
+  }
+
+  @keyframes resultBounce {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  .result-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
+    font-weight: 900;
+    margin-bottom: 12px;
+  }
+
+  .result-title.victory {
+    background: linear-gradient(135deg, var(--success), var(--blue-1));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .result-title.defeat {
+    background: linear-gradient(135deg, var(--danger), var(--warning));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .result-message {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    line-height: 1.6;
+  }
+
+  .item-obtained {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    margin: 16px 0;
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+    border-radius: 20px;
+    color: var(--success);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    animation: itemPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes itemPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
+    50% { box-shadow: 0 0 25px rgba(0, 255, 136, 0.4); }
+  }
+
+  /* ── Final win screen ── */
+  .final-screen {
+    text-align: center;
+    animation: fadeInUp 0.8s ease;
+  }
+
+  .trophy {
+    font-size: 5rem;
+    animation: trophySpin 2s ease-in-out infinite;
+    display: inline-block;
+  }
+
+  @keyframes trophySpin {
+    0%, 100% { transform: rotateY(0deg) scale(1); }
+    25% { transform: rotateY(15deg) scale(1.05); }
+    75% { transform: rotateY(-15deg) scale(1.05); }
+  }
+
+  .credits {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0, 150, 255, 0.15);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    opacity: 0.6;
+  }
+
+  /* ── Screen shake ── */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .shake {
+    animation: shake 0.4s ease;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .glass-card {
+      padding: 24px 18px;
+      border-radius: 18px;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+    }
+
+    .btn {
+      padding: 12px 20px;
+      font-size: 1rem;
+    }
+
+    .opponent-info {
+      gap: 10px;
+    }
+
+    .opponent-avatar {
+      width: 40px;
+      height: 40px;
+      font-size: 1.2rem;
+    }
+
+    .hp-bar-container {
+      padding: 12px 14px;
+    }
+
+    .dialogue-box {
+      padding: 12px 14px;
+      font-size: 0.9rem;
+    }
+  }
+
+  /* ── Utility ── */
+  .hidden { display: none !important; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .mb-16 { margin-bottom: 16px; }
+  .text-center { text-align: center; }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,150,255,0.3), transparent);
+    margin: 20px 0;
+  }
+
+  .section-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-align: center;
+    margin-bottom: 16px;
+    opacity: 0.6;
+  }
+
+  /* Disabled state */
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-container" id="bgContainer">
+  <div class="grid-overlay"></div>
+</div>
+
+<div class="app-wrapper">
+  <div class="glass-card" id="mainCard">
+
+    <!-- ====== WELCOME SCREEN ====== -->
+    <div id="welcomeScreen">
+      <div class="title">PICASH</div>
+      <div class="subtitle">Battle Arena</div>
+
+      <div class="divider"></div>
+
+      <div class="form-group">
+        <label class="form-label" for="nameInput">What's your name?</label>
+        <input class="form-input" type="text" id="nameInput" placeholder="Enter your name..." autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="ageInput">What's your age?</label>
+        <input class="form-input" type="number" id="ageInput" placeholder="Enter your age..." min="1" max="120" autocomplete="off">
+      </div>
+
+      <button class="btn btn-primary btn-full mt-16" id="startBtn" onclick="startGame()">
+        ⚡ Enter the Arena
+      </button>
+    </div>
+
+    <!-- ====== SELECT OPPONENT SCREEN ====== -->
+    <div id="selectScreen" class="hidden">
+      <div class="title" style="font-size: clamp(1.4rem,4vw,2rem); margin-bottom: 4px;">CHOOSE OPPONENT</div>
+      <div class="subtitle" style="margin-bottom: 16px; font-size:0.8rem;">Defeat them all to become champion</div>
+
+      <div class="inventory-bar" id="inventoryBar">
+        <div class="inv-item missing" id="invBankNote">📜 Bank Note</div>
+        <div class="inv-item missing" id="invBattlePass">🎫 Battle Pass</div>
+      </div>
+
+      <div class="divider" style="margin:12px 0 20px"></div>
+
+      <button class="btn btn-opponent" id="btnToru" onclick="selectOpponent(1)">
+        <div class="opponent-info">
+          <div class="opponent-avatar">⚡</div>
+          <div class="opponent-details">
+            <div class="name">Prodigy Toru</div>
+            <div class="desc">Young thief with quick reflexes</div>
+          </div>
+          <div class="opponent-stats">
+            <div class="hp">90 HP</div>
+            <div class="diff">⭐</div>
+          </div>
+        </div>
+      </button>
+
+      <button class="btn btn-opponent" id="btnTenny" onclick="selectOpponent(2)">
+        <div class="opponent-info">
+          <div class="opponent-avatar">🏦</div>
+          <div class="opponent-details">
+            <div class="name">Bank Owner Tenny</div>
+            <div class="desc">Wealthy banker with heavy strikes</div>
+          </div>
+          <div class="opponent-stats">
+            <div class="hp">110 HP</div>
+            <div class="diff">⭐⭐</div>
+          </div>
+        </div>
+      </button>
+
+      <button class="btn btn-opponent" id="btnTorsu" onclick="selectOpponent(3)">
+        <div class="opponent-info">
+          <div class="opponent-avatar">👑</div>
+          <div class="opponent-details">
+            <div class="name">Battle Champion Torsu</div>
+            <div class="desc">Undefeated legendary champion</div>
+          </div>
+          <div class="opponent-stats">
+            <div class="hp">120 HP</div>
+            <div class="diff">⭐⭐⭐</div>
+          </div>
+        </div>
+      </button>
+
+      <div id="selectMessage" class="dialogue-box hidden" style="margin-top:16px"></div>
+    </div>
+
+    <!-- ====== BATTLE SCREEN ====== -->
+    <div id="battleScreen" class="hidden">
+      <div class="battle-arena">
+        <div class="opponent-intro" id="battleIntro">
+          <div class="opponent-name" id="battleOpponentName"></div>
+          <div class="opponent-title" id="battleOpponentTitle"></div>
+        </div>
+
+        <div class="dialogue-box" id="battleDialogue"></div>
+
+        <div class="hp-section">
+          <div class="hp-bar-container enemy-bar">
+            <div class="hp-header">
+              <span class="hp-name" id="enemyHpName" style="color:var(--danger)"></span>
+              <span class="hp-value" id="enemyHpValue" style="color:var(--danger)"></span>
+            </div>
+            <div class="hp-track">
+              <div class="hp-fill enemy-fill" id="enemyHpFill" style="width:100%"></div>
+            </div>
+          </div>
+
+          <div class="hp-bar-container player-bar">
+            <div class="hp-header">
+              <span class="hp-name" id="playerHpName" style="color:var(--blue-1)"></span>
+              <span class="hp-value" id="playerHpValue" style="color:var(--blue-1)"></span>
+            </div>
+            <div class="hp-track">
+              <div class="hp-fill player-fill" id="playerHpFill" style="width:100%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="battle-log" id="battleLog"></div>
+
+        <div class="action-buttons" id="actionBtns">
+          <button class="btn btn-attack" onclick="playerAction('attack')">⚔️ Attack</button>
+          <button class="btn btn-heal" onclick="playerAction('heal')">💚 Heal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== RESULT SCREEN ====== -->
+    <div id="resultScreen" class="hidden">
+      <div class="result-screen">
+        <div class="result-icon" id="resultIcon"></div>
+        <div class="result-title" id="resultTitle"></div>
+        <div class="result-message" id="resultMessage"></div>
+        <div id="resultItem"></div>
+        <button class="btn btn-primary btn-full mt-24" onclick="backToSelect()">🔙 Back to Arena</button>
+      </div>
+    </div>
+
+    <!-- ====== FINAL SCREEN ====== -->
+    <div id="finalScreen" class="hidden">
+      <div class="final-screen">
+        <div class="trophy">🏆</div>
+        <div class="result-title victory" style="margin-top:16px;">CHAMPION!</div>
+        <div class="result-message">
+          You have defeated all opponents and become the ultimate Picash Champion!
+        </div>
+        <div class="divider"></div>
+        <div class="result-message" style="font-size:1rem;">
+          Thanks for playing <strong>PICASH</strong><br>
+          Keep tuned for more updates!
+        </div>
+        <button class="btn btn-primary btn-full mt-24" onclick="resetGame()">🔄 Play Again</button>
+        <div class="credits">PICASH v1.0 — Battle Arena</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── Particles ──
+  (function createParticles() {
+    const bg = document.getElementById('bgContainer');
+    for (let i = 0; i < 40; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (6 + Math.random() * 10) + 's';
+      p.style.animationDelay = (Math.random() * 10) + 's';
+      p.style.width = p.style.height = (2 + Math.random() * 3) + 'px';
+      bg.appendChild(p);
+    }
+  })();
+
+  // ── Game state ──
+  let playerName = '';
+  let playerAge = 0;
+  let bankNote = false;
+  let battlePass = false;
+  let grandSlam = false;
+
+  // Battle state
+  let currentOpponent = null;
+  let playerHp = 100;
+  let playerMaxHp = 100;
+  let enemyHp = 0;
+  let enemyMaxHp = 0;
+  let battleActive = false;
+
+  const opponents = {
+    1: {
+      name: 'Prodigy Toru',
+      title: 'THE YOUNG PRODIGY',
+      avatar: '⚡',
+      hp: 90,
+      damage: 15,
+      hitChance: 0.55,   // >0.45 means miss, so hit = 55%
+      dialogue: [
+        "I stole the Bank Note from the Fatty Bald Tenny LOL",
+        "You want it? Beat me first!",
+        "We can keep discussions for later."
+      ],
+      winMsg: ["FINE, here is the BANK NOTE.", "Don't lose it this time!"],
+      loseMsg: ["GG, I hope Brother Torsu would be proud of me!"],
+      reward: 'bankNote',
+      rewardLabel: '📜 Bank Note'
+    },
+    2: {
+      name: 'Bank Owner Tenny',
+      title: 'THE WEALTHY BANKER',
+      avatar: '🏦',
+      hp: 110,
+      damage: 17,
+      hitChance: 0.50,
+      dialogue: [
+        "Thanks for bringing me my BANK NOTE back!",
+        "How about I give you something for your hard work?",
+        "You would have to beat me tho!"
+      ],
+      winMsg: ["Here, with this you can finally battle the CHAMPION!", "You earned it."],
+      loseMsg: ["Better luck next time KID!"],
+      reward: 'battlePass',
+      rewardLabel: '🎫 Battle Pass'
+    },
+    3: {
+      name: 'Battle Champion Torsu',
+      title: 'THE UNDEFEATED LEGEND',
+      avatar: '👑',
+      hp: 120,
+      damage: 20,
+      hitChance: 0.60,
+      dialogue: [
+        "A challenger? It's been a while since I've had one.",
+        `May luck favour you!`,
+        "I, BATTLE CHAMPION TORSU, accept your challenge!"
+      ],
+      winMsg: ["Well... that was CINEMA.", "You are the new champion!"],
+      loseMsg: ["Sorry, I am just too strong.", "Come back when you are stronger!"],
+      reward: 'grandSlam',
+      rewardLabel: '🏆 Grand Slam'
+    }
+  };
+
+  // ── Screens ──
+  function showScreen(id) {
+    ['welcomeScreen','selectScreen','battleScreen','resultScreen','finalScreen']
+      .forEach(s => document.getElementById(s).classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+    // Re-trigger card animation
+    const card = document.getElementById('mainCard');
+    card.style.animation = 'none';
+    card.offsetHeight;
+    card.style.animation = 'cardAppear 0.5s cubic-bezier(0.16,1,0.3,1)';
+  }
+
+  // ── Start ──
+  function startGame() {
+    playerName = document.getElementById('nameInput').value.trim();
+    playerAge = parseInt(document.getElementById('ageInput').value) || 0;
+    if (!playerName) {
+      document.getElementById('nameInput').focus();
+      document.getElementById('nameInput').style.borderColor = 'var(--danger)';
+      setTimeout(() => document.getElementById('nameInput').style.borderColor = '', 1000);
+      return;
+    }
+    if (!playerAge || playerAge < 1) {
+      document.getElementById('ageInput').focus();
+      document.getElementById('ageInput').style.borderColor = 'var(--danger)';
+      setTimeout(() => document.getElementById('ageInput').style.borderColor = '', 1000);
+      return;
+    }
+    // Update Torsu dialogue with player name
+    opponents[3].dialogue[1] = `May luck favour you, ${playerName}!`;
+    showScreen('selectScreen');
+    updateInventory();
+    updateOpponentButtons();
+  }
+
+  // Enter key support
+  document.getElementById('nameInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('ageInput').focus(); });
+  document.getElementById('ageInput').addEventListener('keydown', e => { if(e.key==='Enter') startGame(); });
+
+  // ── Inventory ──
+  function updateInventory() {
+    const bn = document.getElementById('invBankNote');
+    const bp = document.getElementById('invBattlePass');
+    bn.className = 'inv-item ' + (bankNote ? 'obtained' : 'missing');
+    bp.className = 'inv-item ' + (battlePass ? 'obtained' : 'missing');
+  }
+
+  // ── Opponent buttons ──
+  function updateOpponentButtons() {
+    const msg = document.getElementById('selectMessage');
+    msg.classList.add('hidden');
+
+    // Toru is always available
+    document.getElementById('btnToru').classList.remove('locked');
+
+    // Tenny needs bank note
+    if (bankNote) {
+      document.getElementById('btnTenny').classList.remove('locked');
+    } else {
+      document.getElementById('btnTenny').classList.add('locked');
+    }
+
+    // Torsu needs battle pass
+    if (battlePass) {
+      document.getElementById('btnTorsu').classList.remove('locked');
+    } else {
+      document.getElementById('btnTorsu').classList.add('locked');
+    }
+  }
+
+  // ── Select opponent ──
+  function selectOpponent(n) {
+    const msg = document.getElementById('selectMessage');
+
+    if (n === 2 && !bankNote) {
+      msg.innerHTML = '<p>🔒 A kid stole my <strong>BANK NOTE</strong>!</p><p>Help me find it, would you?</p>';
+      msg.classList.remove('hidden');
+      return;
+    }
+    if (n === 3 && !battlePass) {
+      msg.innerHTML = '<p>🔒 You can only battle the <strong>CHAMPION</strong> if you have the <strong>BATTLE PASS</strong>!</p>';
+      msg.classList.remove('hidden');
+      return;
+    }
+
+    startBattle(n);
+  }
+
+  // ── Battle ──
+  function startBattle(n) {
+    currentOpponent = opponents[n];
+    playerHp = 100;
+    playerMaxHp = 100;
+    enemyHp = currentOpponent.hp;
+    enemyMaxHp = currentOpponent.hp;
+    battleActive = true;
+
+    document.getElementById('battleOpponentName').textContent = currentOpponent.name;
+    document.getElementById('battleOpponentTitle').textContent = currentOpponent.title;
+
+    let dialogueHtml = currentOpponent.dialogue.map(d => `<p>${d}</p>`).join('');
+    document.getElementById('battleDialogue').innerHTML = dialogueHtml;
+
+    document.getElementById('enemyHpName').textContent = currentOpponent.name;
+    document.getElementById('playerHpName').textContent = playerName;
+
+    document.getElementById('battleLog').innerHTML = '';
+    document.getElementById('actionBtns').querySelectorAll('button').forEach(b => b.disabled = false);
+
+    updateHpBars();
+    showScreen('battleScreen');
+  }
+
+  function updateHpBars() {
+    const ePct = Math.max(0, (enemyHp / enemyMaxHp) * 100);
+    const pPct = Math.max(0, (playerHp / playerMaxHp) * 100);
+
+    document.getElementById('enemyHpFill').style.width = ePct + '%';
+    document.getElementById('playerHpFill').style.width = pPct + '%';
+
+    document.getElementById('enemyHpValue').textContent = Math.max(0, enemyHp) + ' / ' + enemyMaxHp;
+    document.getElementById('playerHpValue').textContent = Math.max(0, playerHp) + ' / ' + playerMaxHp;
+  }
+
+  function addLog(text, cls) {
+    const log = document.getElementById('battleLog');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry ' + (cls || '');
+    entry.textContent = text;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function shakeCard() {
+    const card = document.getElementById('mainCard');
+    card.classList.add('shake');
+    setTimeout(() => card.classList.remove('shake'), 400);
+  }
+
+  function playerAction(action) {
+    if (!battleActive) return;
+
+    // Disable buttons briefly
+    const btns = document.getElementById('actionBtns').querySelectorAll('button');
+    btns.forEach(b => b.disabled = true);
+
+    if (action === 'attack') {
+      enemyHp -= 10;
+      addLog(`${playerName} attacks for 10 damage!`, 'log-attack');
+    } else {
+      playerHp += 5;
+      addLog(`${playerName} heals for 5 HP!`, 'log-heal');
+    }
+
+    updateHpBars();
+
+    // Check enemy death
+    if (enemyHp <= 0) {
+      battleActive = false;
+      setTimeout(() => endBattle(true), 600);
+      return;
+    }
+
+    // Enemy turn (delayed)
+    setTimeout(() => {
+      const hit = Math.random() < currentOpponent.hitChance;
+      if (hit) {
+        playerHp -= currentOpponent.damage;
+        addLog(`${currentOpponent.name} lands an attack for ${currentOpponent.damage} damage!`, 'log-hit');
+        shakeCard();
+      } else {
+        addLog(`${currentOpponent.name} missed their attack!`, 'log-miss');
+      }
+
+      updateHpBars();
+
+      if (playerHp <= 0) {
+        battleActive = false;
+        setTimeout(() => endBattle(false), 600);
+        return;
+      }
+
+      btns.forEach(b => b.disabled = false);
+    }, 500);
+  }
+
+  function endBattle(won) {
+    if (won) {
+      // Grant reward
+      if (currentOpponent.reward === 'bankNote') { bankNote = true; }
+      else if (currentOpponent.reward === 'battlePass') { battlePass = true; bankNote = false; }
+      else if (currentOpponent.reward === 'grandSlam') { grandSlam = true; battlePass = false; }
+
+      if (grandSlam) {
+        showScreen('finalScreen');
+        return;
+      }
+
+      document.getElementById('resultIcon').textContent = '🎉';
+      document.getElementById('resultTitle').textContent = 'VICTORY!';
+      document.getElementById('resultTitle').className = 'result-title victory';
+      document.getElementById('resultMessage').innerHTML = currentOpponent.winMsg.map(m => `<p>${m}</p>`).join('');
+      document.getElementById('resultItem').innerHTML =
+        `<div class="item-obtained">✨ Obtained: ${currentOpponent.rewardLabel}</div>`;
+    } else {
+      document.getElementById('resultIcon').textContent = '💀';
+      document.getElementById('resultTitle').textContent = 'DEFEATED';
+      document.getElementById('resultTitle').className = 'result-title defeat';
+      document.getElementById('resultMessage').innerHTML = currentOpponent.loseMsg.map(m => `<p>${m}</p>`).join('');
+      document.getElementById('resultItem').innerHTML = '';
+    }
+
+    showScreen('resultScreen');
+  }
+
+  function backToSelect() {
+    updateInventory();
+    updateOpponentButtons();
+    showScreen('selectScreen');
+  }
+
+  function resetGame() {
+    bankNote = false;
+    battlePass = false;
+    grandSlam = false;
+    playerName = '';
+    playerAge = 0;
+    document.getElementById('nameInput').value = '';
+    document.getElementById('ageInput').value = '';
+    showScreen('welcomeScreen');
+  }
+</script>
+
+</body>
+</html>
